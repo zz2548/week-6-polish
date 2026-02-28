@@ -1,0 +1,133 @@
+[gd_scene load_steps=16 format=3 uid="uid://hm8b6dg0ebfq"]
+
+[ext_resource type="Script" uid="uid://laxraretgnmd" path="res://scripts/rollingGround.gd" id="1_0xm2m"]
+[ext_resource type="Script" uid="uid://bjqeefp26x3ce" path="res://scripts/player.gd" id="1_ig7tw"]
+[ext_resource type="Script" uid="uid://dopo7b1n4cwe1" path="res://scripts/obs_spawner.gd" id="3_h2yge"]
+[ext_resource type="AudioStream" uid="uid://cmkjfeow7ddr8" path="res://assets/SFX_Jump_01.wav" id="3_tbgi4"]
+[ext_resource type="PackedScene" uid="uid://br4qhjdleka5g" path="res://scenes/obstacle.tscn" id="4_1bvp3"]
+[ext_resource type="AudioStream" uid="uid://b7gis36ki4yi5" path="res://assets/SFX_Jump_45.wav" id="4_tefeu"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_7dm0k"]
+size = Vector2(1200, 60)
+
+[sub_resource type="Gradient" id="Gradient_0xm2m"]
+colors = PackedColorArray(0.22352941, 0.77254903, 0.73333335, 1, 0, 0.9530348, 0.025217049, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_h2yge"]
+gradient = SubResource("Gradient_0xm2m")
+width = 150
+height = 60
+
+[sub_resource type="Gradient" id="Gradient_h2yge"]
+colors = PackedColorArray(0.22352941, 0.77254903, 0.73333335, 1, 1, 0.6595586, 0.9003027, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_1bvp3"]
+gradient = SubResource("Gradient_h2yge")
+width = 150
+height = 60
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_h2yge"]
+
+[sub_resource type="Gradient" id="Gradient_1bvp3"]
+offsets = PackedFloat32Array(0.0033333334, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_lquwl"]
+gradient = SubResource("Gradient_1bvp3")
+fill_from = Vector2(1, 0)
+fill_to = Vector2(0, 0)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_0xm2m"]
+size = Vector2(80, 80)
+
+[node name="main" type="Node2D"]
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="msgLabel" type="Label" parent="UI"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -0.5
+offset_top = -11.5
+offset_right = 0.5
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Score" type="Label" parent="UI"]
+offset_right = 40.0
+offset_bottom = 23.0
+text = "Score: "
+
+[node name="Ground" type="Node2D" parent="."]
+script = ExtResource("1_0xm2m")
+
+[node name="Ground1" type="StaticBody2D" parent="Ground"]
+position = Vector2(600, 0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground/Ground1"]
+shape = SubResource("RectangleShape2D_7dm0k")
+debug_color = Color(0, 0.5989899, 0.70771986, 0.41960785)
+
+[node name="Sprite2D" type="Sprite2D" parent="Ground/Ground1"]
+scale = Vector2(8.0199995, 1.01)
+texture = SubResource("GradientTexture2D_h2yge")
+
+[node name="Ground2" type="StaticBody2D" parent="Ground"]
+position = Vector2(-600, 0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground/Ground2"]
+shape = SubResource("RectangleShape2D_7dm0k")
+debug_color = Color(0, 0.5989899, 0.70771986, 0.41960785)
+
+[node name="Sprite2D" type="Sprite2D" parent="Ground/Ground2"]
+scale = Vector2(8.0199995, 1.01)
+texture = SubResource("GradientTexture2D_1bvp3")
+
+[node name="Ground3" type="StaticBody2D" parent="Ground"]
+position = Vector2(-1200, 0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground/Ground3"]
+shape = SubResource("RectangleShape2D_7dm0k")
+debug_color = Color(0, 0.5989899, 0.70771986, 0.41960785)
+
+[node name="Sprite2D" type="Sprite2D" parent="Ground/Ground3"]
+scale = Vector2(8.0199995, 1.01)
+texture = SubResource("GradientTexture2D_1bvp3")
+
+[node name="player" type="CharacterBody2D" parent="."]
+position = Vector2(0, -137)
+script = ExtResource("1_ig7tw")
+
+[node name="Sprite2D" type="Sprite2D" parent="player"]
+material = SubResource("CanvasItemMaterial_h2yge")
+position = Vector2(4.2915344e-06, -9.536743e-07)
+scale = Vector2(1.2500001, 1.2500001)
+texture = SubResource("GradientTexture2D_lquwl")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="player"]
+shape = SubResource("RectangleShape2D_0xm2m")
+
+[node name="SfxJump01" type="AudioStreamPlayer" parent="player"]
+stream = ExtResource("3_tbgi4")
+volume_db = -20.0
+
+[node name="SfxJump45" type="AudioStreamPlayer" parent="player"]
+stream = ExtResource("4_tefeu")
+volume_db = -20.0
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(340, -221)
+
+[node name="ObstacleRoot" type="Node2D" parent="."]
+
+[node name="obsSpawner" type="Node" parent="ObstacleRoot"]
+script = ExtResource("3_h2yge")
+obstacle_scene = ExtResource("4_1bvp3")
+player_path = NodePath("../../player")
+ground_path = NodePath("../../Ground")
+obstacle_root_path = NodePath("..")
+ground_y = -10.0
