@@ -23,11 +23,18 @@ func setup(w: float, h: float, c: Color) -> void:
 	_sprite.modulate = c
 	_sprite.position = Vector2.ZERO
 
+	# Apply neon glow shader
+	var mat := ShaderMaterial.new()
+	mat.shader = preload("res://assets/neon_glow.gdshader")
+	mat.set_shader_parameter("glow_color", c)
+	mat.set_shader_parameter("glow_intensity", 3.0)
+	mat.set_shader_parameter("glow_size", 3.0)
+	_sprite.material = mat
+
 	var shape           := RectangleShape2D.new()
 	shape.size          = Vector2(w, h)
 	_collision.shape    = shape
 	_collision.position = Vector2.ZERO
-
 
 # ─── Collision ───────────────────────────────────────────────────────────────
 func _on_body_entered(body: Node) -> void:

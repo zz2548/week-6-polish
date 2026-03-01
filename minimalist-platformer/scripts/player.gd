@@ -29,6 +29,23 @@ var controls_enabled  : bool  = true
 func _ready() -> void:
 	_camera.ignore_rotation = true
 	
+	var mat := ShaderMaterial.new()
+	mat.shader = preload("res://assets/neon_glow.gdshader")
+	mat.set_shader_parameter("glow_color", Color(0.0, 1.0, 1.0, 1.0))  # cyan
+	mat.set_shader_parameter("glow_intensity", 3.0)
+	mat.set_shader_parameter("glow_size", 3.0)
+	$Sprite2D.material = mat
+	
+	var texture := GradientTexture2D.new()
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.width = 256
+	texture.height = 256
+	
+	$PointLight2D.texture = texture
+	$PointLight2D.texture_scale = 2.0
+	$PointLight2D.energy = 0.8
+	_camera.ignore_rotation = true
+	
 func _process(delta: float) -> void:
 	_camera.global_rotation = 0.0
 	_camera.global_position.x = global_position.x + 500

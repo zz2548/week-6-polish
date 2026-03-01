@@ -45,15 +45,6 @@ gradient = SubResource("Gradient_h2yge")
 width = 150
 height = 60
 
-[sub_resource type="Environment" id="Environment_tefeu"]
-background_mode = 3
-background_color = Color(0.039215688, 0.039215688, 0.05882353, 1)
-glow_enabled = true
-glow_intensity = 0.42
-glow_bloom = 0.65
-glow_hdr_threshold = 0.55
-glow_map_strength = 0.6
-
 [node name="main" type="Node2D" unique_id=2003832931]
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=593991320]
@@ -81,10 +72,10 @@ position = Vector2(0, -137)
 script = ExtResource("1_ig7tw")
 
 [node name="Background" type="ColorRect" parent="player" unique_id=1022996273]
-offset_left = -5165.0
-offset_top = -2628.0
-offset_right = 4125.0
-offset_bottom = 2045.0
+offset_left = -1587.0
+offset_top = -939.0
+offset_right = 1659.0
+offset_bottom = 846.0
 color = Color(0, 0, 0, 1)
 
 [node name="Sprite2D" type="Sprite2D" parent="player" unique_id=1307167859]
@@ -160,6 +151,3 @@ debug_color = Color(0, 0.5989899, 0.70771986, 0.41960785)
 [node name="Sprite2D" type="Sprite2D" parent="Ground/Ground3" unique_id=254665719]
 scale = Vector2(8.0199995, 1.01)
 texture = SubResource("GradientTexture2D_1bvp3")
-
-[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=189525202]
-environment = SubResource("Environment_tefeu")
