@@ -22,10 +22,18 @@ var controls_enabled  : bool  = true
 @onready var sfx_jump_01 : AudioStreamPlayer = $SfxJump01
 @onready var sfx_jump_45 : AudioStreamPlayer = $SfxJump45
 @onready var _ground : Node = $"../Ground"
-
+@onready var _camera : Camera2D = $Camera2D
 
 
 # ─── Main Loop ───────────────────────────────────────────────────────────────
+func _ready() -> void:
+	_camera.ignore_rotation = true
+	
+func _process(delta: float) -> void:
+	_camera.global_rotation = 0.0
+	_camera.global_position.x = global_position.x + 500
+	_camera.global_position.y = -200.0
+	
 func _physics_process(delta: float) -> void:
 	if not controls_enabled:
 		return
@@ -39,7 +47,7 @@ func _physics_process(delta: float) -> void:
 	# Player moves right at ground speed instead of ground scrolling left
 	velocity.x = float(_ground.get("speed"))
 	move_and_slide()
-
+	
 
 # ─── Physics Helpers ─────────────────────────────────────────────────────────
 func _apply_gravity(delta: float) -> void:

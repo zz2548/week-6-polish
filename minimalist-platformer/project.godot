@@ -17,7 +17,15 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 config/name="minimalist-platformer"
 run/main_scene="uid://hm8b6dg0ebfq"
 config/features=PackedStringArray("4.6", "Forward Plus")
+run/max_fps=60
 config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=900
+window/size/resizable=false
+window/stretch/mode="canvas_items"
 
 [input]
 
