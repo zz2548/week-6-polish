@@ -1,29 +1,39 @@
 extends Node2D
-@export var speed := 420.0
+
+# ─── Exports ─────────────────────────────────────────────────────────────────
+@export var speed        := 420.0
+@export var ground_acc   := 15.0
 @export var ground_width := 1200.0
-@export var ground_acc := 15.0
 
-@onready var g1 := $Ground1
-@onready var g2 := $Ground2
-@onready var g3 := $Ground3  
+# ─── Node References ─────────────────────────────────────────────────────────
+@onready var _tiles : Array[Node2D] = [$Ground1, $Ground2, $Ground3]
+@onready var _player : CharacterBody2D = $"../player"
 
+
+
+# ─── Lifecycle ───────────────────────────────────────────────────────────────
 func _ready() -> void:
-	g1.position.x = 0.0
-	g2.position.x = ground_width
-	g3.position.x = ground_width * 2.0
+	assert(_player != null, "RollingGround: player_path is not set or is invalid!")
+	for i in _tiles.size():
+		_tiles[i].global_position.x = ground_width * i
 
+
+# ─── Main Loop ───────────────────────────────────────────────────────────────
 func _physics_process(delta: float) -> void:
-	speed = speed + ground_acc * delta
-	var dx = speed * delta
-	
-	g1.position.x -= dx
-	g2.position.x -= dx
-	g3.position.x -= dx
-	
-	# Wrap each tile individually
-	if g1.position.x <= -ground_width:
-		g1.position.x = max(g2.position.x, max(g3.position.x, g1.position.x)) + ground_width
-	if g2.position.x <= -ground_width:
-		g2.position.x = max(g1.position.x, max(g3.position.x, g2.position.x)) + ground_width
-	if g3.position.x <= -ground_width:
-		g3.position.x = max(g1.position.x, max(g2.position.x, g3.position.x)) + ground_width
+	speed += ground_acc * delta
+	_wrap_tiles()
+
+
+# ─── Helpers ─────────────────────────────────────────────────────────────────
+
+# Recycle any tile that has been passed by the player
+func _wrap_tiles() -> void:
+	for tile in _tiles:
+		if tile.global_position.x + ground_width < _player.global_position.x:
+			tile.global_position.x = _rightmost_x() + ground_width
+
+func _rightmost_x() -> float:
+	var max_x := -INF
+	for tile in _tiles:
+		max_x = maxf(max_x, tile.global_position.x)
+	return max_x

@@ -119,10 +119,8 @@ volume_db = -20.0
 stream = ExtResource("4_tefeu")
 volume_db = -20.0
 
-[node name="Camera2D" type="Camera2D" parent="player" unique_id=186203624]
-position = Vector2(340, -84)
-position_smoothing_enabled = true
-drag_horizontal_enabled = true
+[node name="Camera2D" type="Camera2D" parent="." unique_id=186203624]
+position = Vector2(340, -221)
 
 [node name="ObstacleRoot" type="Node2D" parent="." unique_id=1432072697]
 
@@ -132,4 +130,7 @@ obstacle_scene = ExtResource("4_1bvp3")
 player_path = NodePath("../../player")
 ground_path = NodePath("../../Ground")
 obstacle_root_path = NodePath("..")
+spawn_offset = null
 ground_y = -10.0
+min_t = null
+max_t = null

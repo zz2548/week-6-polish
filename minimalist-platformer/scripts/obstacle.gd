@@ -1,34 +1,35 @@
 class_name Obstacle
 extends Area2D
 
+# ─── Signals ─────────────────────────────────────────────────────────────────
 signal hit_player
 
-@export var speed: float = 420.0
-
-@onready var sp: Sprite2D = $Sprite2D
-@onready var cs: CollisionShape2D = $CollisionShape2D
-
-func setup(w: float, h: float, c: Color) -> void:
-	# Visual size
-	sp.scale = Vector2(w, h)
-	sp.modulate = c
-	sp.position = Vector2.ZERO
-
-	# Collision box
-	var r: RectangleShape2D = RectangleShape2D.new()
-	r.size = Vector2(w, h)
-	cs.shape = r
-	cs.position = Vector2.ZERO
-
-func _physics_process(delta: float) -> void:
-	global_position.x -= speed * delta
-	if global_position.x < -200.0:
-		queue_free()
+# ─── Nodes ───────────────────────────────────────────────────────────────────
+@onready var _sprite    : Sprite2D         = $Sprite2D
+@onready var _collision : CollisionShape2D = $CollisionShape2D
 
 
+# ─── Lifecycle ───────────────────────────────────────────────────────────────
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
-	
+
+# No _physics_process needed — obstacles are stationary in world space.
+# Despawning is handled by obs_spawner._despawn_passed_obstacles()
+
+
+# ─── Public API ──────────────────────────────────────────────────────────────
+func setup(w: float, h: float, c: Color) -> void:
+	_sprite.scale    = Vector2(w, h)
+	_sprite.modulate = c
+	_sprite.position = Vector2.ZERO
+
+	var shape           := RectangleShape2D.new()
+	shape.size          = Vector2(w, h)
+	_collision.shape    = shape
+	_collision.position = Vector2.ZERO
+
+
+# ─── Collision ───────────────────────────────────────────────────────────────
 func _on_body_entered(body: Node) -> void:
 	if body.name == "player":
 		hit_player.emit()

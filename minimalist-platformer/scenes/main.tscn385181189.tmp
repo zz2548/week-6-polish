@@ -119,10 +119,8 @@ volume_db = -20.0
 stream = ExtResource("4_tefeu")
 volume_db = -20.0
 
-[node name="Camera2D" type="Camera2D" parent="player" unique_id=186203624]
-position = Vector2(340, -84)
-position_smoothing_enabled = true
-drag_horizontal_enabled = true
+[node name="Camera2D" type="Camera2D" parent="." unique_id=186203624]
+position = Vector2(340, -221)
 
 [node name="ObstacleRoot" type="Node2D" parent="." unique_id=1432072697]
 
