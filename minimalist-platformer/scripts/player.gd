@@ -144,8 +144,8 @@ func _handle_jump_input() -> void:
 
 	_tween_squash_stretch(stretch_scale)
 	if p_jump:
-		# Gold burst for double jump, purple-pink for first jump
-		_set_jump_particle_color(Color(1.0, 0.85, 0.0) if is_double_jump else Color(0.8, 0.4, 1.0))
+		# Blue burst for double jump, purple-pink for first jump
+		_set_jump_particle_color(Color(0.1, 0.6, 1.0) if is_double_jump else Color(0.8, 0.4, 1.0))
 		p_jump.restart()
 
 	if jumps_left == 1:
