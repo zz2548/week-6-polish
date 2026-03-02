@@ -6,6 +6,8 @@
 [ext_resource type="AudioStream" uid="uid://cmkjfeow7ddr8" path="res://assets/SFX_Jump_01.wav" id="3_tbgi4"]
 [ext_resource type="PackedScene" uid="uid://br4qhjdleka5g" path="res://scenes/obstacle.tscn" id="4_1bvp3"]
 [ext_resource type="AudioStream" uid="uid://b7gis36ki4yi5" path="res://assets/SFX_Jump_45.wav" id="4_tefeu"]
+[ext_resource type="Script" uid="uid://bqrpstu46poj0" path="res://scripts/parallax_bg.gd" id="6_pbg"]
+[ext_resource type="AudioStream" uid="uid://b6mulol3rugn3" path="res://assets/music.mp3" id="8_tipki"]
 
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_h2yge"]
 
@@ -26,28 +28,59 @@ size = Vector2(80, 80)
 [sub_resource type="GradientTexture2D" id="GradientTexture2D_o6xl0"]
 gradient = SubResource("Gradient_tefeu")
 
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_trail"]
+particle_flag_disable_z = true
+direction = Vector3(0, 1, 0)
+spread = 25.0
+initial_velocity_min = 20.0
+initial_velocity_max = 70.0
+gravity = Vector3(0, 120, 0)
+color = Color(0.65, 0, 1, 0.55)
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_jump"]
+particle_flag_disable_z = true
+direction = Vector3(0, 1, 0)
+spread = 75.0
+initial_velocity_min = 80.0
+initial_velocity_max = 200.0
+gravity = Vector3(0, 500, 0)
+color = Color(0.85, 0.5, 1, 0.9)
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_death"]
+particle_flag_disable_z = true
+direction = Vector3(0, -1, 0)
+spread = 180.0
+initial_velocity_min = 150.0
+initial_velocity_max = 420.0
+gravity = Vector3(0, 250, 0)
+color = Color(1, 0, 0.8, 1)
+
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_7dm0k"]
 size = Vector2(1200, 60)
 
 [sub_resource type="Gradient" id="Gradient_0xm2m"]
-colors = PackedColorArray(0.22352941, 0.77254903, 0.73333335, 1, 0, 0.9530348, 0.025217049, 1)
+offsets = PackedFloat32Array(0, 0.07, 1)
+colors = PackedColorArray(0.65, 0, 1, 1, 0.07, 0.05, 0.1, 1, 0.03, 0.02, 0.05, 1)
 
 [sub_resource type="GradientTexture2D" id="GradientTexture2D_h2yge"]
 gradient = SubResource("Gradient_0xm2m")
 width = 150
 height = 60
+fill_to = Vector2(0, 1)
 
 [sub_resource type="Gradient" id="Gradient_h2yge"]
-colors = PackedColorArray(0.22352941, 0.77254903, 0.73333335, 1, 1, 0.6595586, 0.9003027, 1)
+offsets = PackedFloat32Array(0, 0.07, 1)
+colors = PackedColorArray(1, 0.05, 0.6, 1, 0.08, 0.04, 0.08, 1, 0.03, 0.02, 0.04, 1)
 
 [sub_resource type="GradientTexture2D" id="GradientTexture2D_1bvp3"]
 gradient = SubResource("Gradient_h2yge")
 width = 150
 height = 60
+fill_to = Vector2(0, 1)
 
 [sub_resource type="Environment" id="Environment_tefeu"]
 background_mode = 3
-background_color = Color(0.039215688, 0.039215688, 0.05882353, 1)
+background_color = Color(0.03, 0.01, 0.07, 1)
 glow_enabled = true
 glow_intensity = 0.42
 glow_bloom = 0.65
@@ -55,6 +88,9 @@ glow_hdr_threshold = 0.55
 glow_map_strength = 0.6
 
 [node name="main" type="Node2D" unique_id=2003832931]
+
+[node name="ParallaxBg" type="CanvasLayer" parent="." unique_id=111111010]
+script = ExtResource("6_pbg")
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=593991320]
 
@@ -76,16 +112,34 @@ offset_right = 40.0
 offset_bottom = 23.0
 text = "Score: "
 
+[node name="ComboLabel" type="Label" parent="UI" unique_id=111111005]
+modulate = Color(0.9, 0.5, 1, 0)
+anchors_preset = -1
+anchor_left = 0.5
+anchor_top = 0.35
+anchor_right = 0.5
+anchor_bottom = 0.35
+offset_left = -150.0
+offset_top = -25.0
+offset_right = 150.0
+offset_bottom = 25.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 36
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="player" type="CharacterBody2D" parent="." unique_id=1595811372]
 position = Vector2(0, -137)
 script = ExtResource("1_ig7tw")
 
 [node name="Background" type="ColorRect" parent="player" unique_id=1022996273]
+visible = false
 offset_left = -5165.0
 offset_top = -2628.0
 offset_right = 4125.0
 offset_bottom = 2045.0
-color = Color(0, 0, 0, 1)
+color = Color(0, 0, 0, 0)
 
 [node name="Sprite2D" type="Sprite2D" parent="player" unique_id=1307167859]
 material = SubResource("CanvasItemMaterial_h2yge")
@@ -110,10 +164,34 @@ position_smoothing_enabled = true
 drag_horizontal_enabled = true
 
 [node name="PointLight2D" type="PointLight2D" parent="player" unique_id=1560923916]
-color = Color(0, 1, 1, 1)
+color = Color(0.7, 0, 1, 1)
 energy = 0.8
 texture = SubResource("GradientTexture2D_o6xl0")
 texture_scale = 0.3
+
+[node name="TrailParticles" type="GPUParticles2D" parent="player" unique_id=111111001]
+amount = 22
+lifetime = 0.4
+process_material = SubResource("ParticleProcessMaterial_trail")
+
+[node name="JumpParticles" type="GPUParticles2D" parent="player" unique_id=111111002]
+emitting = false
+amount = 12
+lifetime = 0.38
+one_shot = true
+explosiveness = 0.9
+process_material = SubResource("ParticleProcessMaterial_jump")
+
+[node name="DeathParticles" type="GPUParticles2D" parent="player" unique_id=111111003]
+emitting = false
+amount = 40
+lifetime = 1.2
+one_shot = true
+explosiveness = 1.0
+process_material = SubResource("ParticleProcessMaterial_death")
+
+[node name="SfxDeath" type="AudioStreamPlayer" parent="player" unique_id=111111004]
+volume_db = -15.0
 
 [node name="ObstacleRoot" type="Node2D" parent="." unique_id=1432072697]
 
@@ -136,7 +214,8 @@ shape = SubResource("RectangleShape2D_7dm0k")
 debug_color = Color(0, 0.5989899, 0.70771986, 0.41960785)
 
 [node name="Sprite2D" type="Sprite2D" parent="Ground/Ground1" unique_id=1916099998]
-scale = Vector2(8.0199995, 1.01)
+position = Vector2(0, 180)
+scale = Vector2(8.0199995, 7)
 texture = SubResource("GradientTexture2D_h2yge")
 
 [node name="Ground2" type="StaticBody2D" parent="Ground" unique_id=506909790]
@@ -147,7 +226,8 @@ shape = SubResource("RectangleShape2D_7dm0k")
 debug_color = Color(0, 0.5989899, 0.70771986, 0.41960785)
 
 [node name="Sprite2D" type="Sprite2D" parent="Ground/Ground2" unique_id=1082734667]
-scale = Vector2(8.0199995, 1.01)
+position = Vector2(0, 180)
+scale = Vector2(8.0199995, 7)
 texture = SubResource("GradientTexture2D_1bvp3")
 
 [node name="Ground3" type="StaticBody2D" parent="Ground" unique_id=52941778]
@@ -158,8 +238,14 @@ shape = SubResource("RectangleShape2D_7dm0k")
 debug_color = Color(0, 0.5989899, 0.70771986, 0.41960785)
 
 [node name="Sprite2D" type="Sprite2D" parent="Ground/Ground3" unique_id=254665719]
-scale = Vector2(8.0199995, 1.01)
+position = Vector2(0, 180)
+scale = Vector2(8.0199995, 7)
 texture = SubResource("GradientTexture2D_1bvp3")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=189525202]
 environment = SubResource("Environment_tefeu")
+
+[node name="Music" type="AudioStreamPlayer" parent="." unique_id=111111020]
+stream = ExtResource("8_tipki")
+volume_db = -8.0
+autoplay = true
