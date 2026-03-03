@@ -251,5 +251,6 @@ stream = ExtResource("8_tipki")
 volume_db = -15.0
 autoplay = true
 
-[node name="VFXTogglePanel" type="CanvasLayer" parent="." unique_id=57259097]
+[node name="VFXPanel" type="CanvasLayer" parent="." unique_id=57259097]
+visible = false
 script = ExtResource("9_85g3d")

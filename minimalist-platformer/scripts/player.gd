@@ -55,23 +55,25 @@ func _ready() -> void:
 	_sprite.material = mat
 
 	# Point light — purple
-	var tex := GradientTexture2D.new()
-	tex.fill   = GradientTexture2D.FILL_RADIAL
-	tex.width  = 256
-	tex.height = 256
-	$PointLight2D.texture       = tex
-	$PointLight2D.texture_scale = 2.5
-	$PointLight2D.energy        = 1.0
-	$PointLight2D.color         = Color(0.7, 0.0, 1.0, 1.0)
+	var light := get_node_or_null("PointLight2D")
+	if light:
+		var tex := GradientTexture2D.new()
+		tex.fill   = GradientTexture2D.FILL_RADIAL
+		tex.width  = 256
+		tex.height = 256
+		light.texture       = tex
+		light.texture_scale = 2.5
+		light.energy        = 1.0
+		light.color         = Color(0.7, 0.0, 1.0, 1.0)
 
 	_setup_trail_particles()
 	_setup_jump_particles()
 
 # ─── Per-frame ────────────────────────────────────────────────────────────────
 func _process(delta: float) -> void:
-	# Screen shake (decays to zero)
+	# Screen shake (decays to zero) — skipped entirely if toggle is off
 	var shake_offset := Vector2.ZERO
-	if _shake_strength > 0.01:
+	if VFXPanel.shake_enabled and _shake_strength > 0.01:
 		_shake_strength = lerpf(_shake_strength, 0.0, shake_decay * delta)
 		shake_offset = Vector2(
 			randf_range(-_shake_strength, _shake_strength),
@@ -117,12 +119,15 @@ func _handle_landing(was_on_floor: bool) -> void:
 	var just_landed := not was_on_floor  # true only on the exact contact frame
 
 	if just_landed and jumps_left < 2:
-		_tween_squash_stretch(squash_scale)
-		apply_screen_shake(5.0)
-		if p_jump:
+		if VFXPanel.squash_enabled:
+			_tween_squash_stretch(squash_scale)
+		if VFXPanel.shake_enabled:
+			apply_screen_shake(5.0)
+		if p_jump and VFXPanel.jump_particles_enabled:
 			_set_jump_particle_color(Color(0.6, 1.0, 1.0))  # cyan-white on landing
 			p_jump.restart()
-		_trigger_combo()
+		if VFXPanel.combo_enabled:
+			_trigger_combo()
 		# Snap rotation to zero on landing — squash animation covers the pop
 		rotation = 0.0
 
@@ -142,8 +147,9 @@ func _handle_jump_input() -> void:
 	jumps_left  -= 1
 	_jump_combo += 1
 
-	_tween_squash_stretch(stretch_scale)
-	if p_jump:
+	if VFXPanel.squash_enabled:
+		_tween_squash_stretch(stretch_scale)
+	if p_jump and VFXPanel.jump_particles_enabled:
 		# Blue burst for double jump, purple-pink for first jump
 		_set_jump_particle_color(Color(0.1, 0.6, 1.0) if is_double_jump else Color(0.8, 0.4, 1.0))
 		p_jump.restart()
@@ -205,7 +211,7 @@ func _trigger_combo() -> void:
 	if _jump_combo >= 2:
 		_streak += 1
 		if _combo_label:
-			_combo_label.text      = "x%d COMBO!" % _streak
+			_combo_label.text       = "x%d COMBO!" % _streak
 			_combo_label.modulate.a = 1.0
 			_combo_label.scale      = Vector2(2.0, 2.0)
 			var tw := create_tween()
@@ -247,13 +253,16 @@ func die_effect() -> void:
 	_sq_tween.tween_property(_sprite, "scale", Vector2.ZERO, 0.12)\
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
+	# Death shake always fires regardless of toggle — it's gameplay feedback
 	apply_screen_shake(30.0)
 
 	# Explosion particles fire as the sprite vanishes
 	await _sq_tween.finished
 	_sprite.visible = false
-	if p_death: p_death.emitting = true
-	if sfx_death: sfx_death.play()
+	if p_death and VFXPanel.death_particles_enabled:
+		p_death.emitting = true
+	if sfx_death:
+		sfx_death.play()
 
 # ─── Particle setup ──────────────────────────────────────────────────────────
 func _setup_trail_particles() -> void:
@@ -263,12 +272,12 @@ func _setup_trail_particles() -> void:
 
 	var mat := ParticleProcessMaterial.new()
 	mat.particle_flag_disable_z = true
-	mat.spread              = 30.0
+	mat.spread               = 30.0
 	mat.initial_velocity_min = 20.0
 	mat.initial_velocity_max = 70.0
-	mat.gravity             = Vector3(0, 120, 0)
-	mat.scale_min           = 2.5
-	mat.scale_max           = 5.5
+	mat.gravity              = Vector3(0, 120, 0)
+	mat.scale_min            = 2.5
+	mat.scale_max            = 5.5
 
 	# Colorful gradient: magenta → violet → orange → cyan → fade
 	var grad := Gradient.new()
@@ -285,12 +294,12 @@ func _setup_trail_particles() -> void:
 	mat.color_ramp = grad_tex
 	p_trail.process_material = mat
 	p_trail.position = Vector2(-20, 0)  # centered behind player when standing
-	p_trail.z_index = -1  # render behind the player sprite
+	p_trail.z_index  = -1               # render behind the player sprite
 
 	var img := Image.create(8, 8, false, Image.FORMAT_RGBA8)
 	img.fill(Color.WHITE)
-	p_trail.texture = ImageTexture.create_from_image(img)
-	p_trail.emitting = true
+	p_trail.texture  = ImageTexture.create_from_image(img)
+	p_trail.emitting = VFXPanel.trail_enabled  # respect toggle at startup
 
 func _setup_jump_particles() -> void:
 	if not p_jump: return
@@ -300,13 +309,14 @@ func _setup_jump_particles() -> void:
 
 	var mat := ParticleProcessMaterial.new()
 	mat.particle_flag_disable_z = true
-	mat.spread              = 65.0
+	mat.spread               = 65.0
 	mat.initial_velocity_min = 100.0
 	mat.initial_velocity_max = 260.0
-	mat.gravity             = Vector3(0, 500, 0)
-	mat.scale_min           = 2.5
-	mat.scale_max           = 5.5
-	mat.color = Color(0.8, 0.4, 1.0)
+	mat.gravity              = Vector3(0, 500, 0)
+	mat.scale_min            = 2.5
+	mat.scale_max            = 5.5
+	mat.color                = Color(0.8, 0.4, 1.0)
+
 	# Fade from opaque to transparent over particle lifetime
 	var grad := Gradient.new()
 	grad.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
@@ -317,11 +327,10 @@ func _setup_jump_particles() -> void:
 	])
 	var grad_tex := GradientTexture1D.new()
 	grad_tex.gradient = grad
-	mat.color_ramp = grad_tex
+	mat.color_ramp   = grad_tex
 	p_jump.process_material = mat
-	# Bottom edge of player so bursts come from the feet
-	p_jump.position = Vector2(0, 40)
-	p_jump.z_index = -1  # render behind the player sprite
+	p_jump.position  = Vector2(0, 40)   # burst from feet
+	p_jump.z_index   = -1               # render behind the player sprite
 
 	var img := Image.create(8, 8, false, Image.FORMAT_RGBA8)
 	img.fill(Color.WHITE)

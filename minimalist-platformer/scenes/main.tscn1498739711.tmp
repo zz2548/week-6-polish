@@ -133,6 +133,10 @@ vertical_alignment = 1
 [node name="player" type="CharacterBody2D" parent="." unique_id=1595811372]
 position = Vector2(0, -137)
 script = ExtResource("1_ig7tw")
+ground_path = null
+squash_scale = null
+stretch_scale = null
+shake_decay = null
 
 [node name="Background" type="ColorRect" parent="player" unique_id=1022996273]
 visible = false
@@ -251,5 +255,10 @@ stream = ExtResource("8_tipki")
 volume_db = -15.0
 autoplay = true
 
-[node name="VFXTogglePanel" type="CanvasLayer" parent="." unique_id=57259097]
+[node name="VFXPanel" type="CanvasLayer" parent="." unique_id=57259097]
+visible = false
 script = ExtResource("9_85g3d")
+ground_path = null
+squash_scale = null
+stretch_scale = null
+shake_decay = null
