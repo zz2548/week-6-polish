@@ -21,9 +21,8 @@ var _sprite_base_scale : Vector2
 var _sq_tween          : Tween = null
 
 # Combo tracking
-var _jump_combo : int = 0
-var _streak     : int = 0
-var _combo_hue  : float = 0.0  # for rainbow cycling at high streaks
+var _streak    : int   = 0
+var _combo_hue : float = 0.0
 
 # ─── Node refs ────────────────────────────────────────────────────────────────
 @onready var sfx_jump_01  : AudioStreamPlayer = $SfxJump01
@@ -72,7 +71,6 @@ func _ready() -> void:
 
 # ─── Per-frame ────────────────────────────────────────────────────────────────
 func _process(delta: float) -> void:
-	# Screen shake
 	var shake_offset := Vector2.ZERO
 	if VFXPanel.shake_enabled and _shake_strength > 0.01:
 		_shake_strength = lerpf(_shake_strength, 0.0, shake_decay * delta)
@@ -127,15 +125,11 @@ func _handle_landing(was_on_floor: bool) -> void:
 		if p_jump and VFXPanel.jump_particles_enabled:
 			_set_jump_particle_color(Color(0.6, 1.0, 1.0))
 			p_jump.restart()
-		# Land particles burst
 		if p_land and VFXPanel.jump_particles_enabled:
 			p_land.restart()
-		# Landing SFX
 		if sfx_land:
 			sfx_land.pitch_scale = randf_range(0.92, 1.08)
 			sfx_land.play()
-		if VFXPanel.combo_enabled:
-			_trigger_combo()
 		rotation = 0.0
 
 	jumps_left = 2
@@ -151,7 +145,6 @@ func _handle_jump_input() -> void:
 
 	velocity.y   = JUMP_VELOCITY
 	jumps_left  -= 1
-	_jump_combo += 1
 
 	if VFXPanel.squash_enabled:
 		_tween_squash_stretch(stretch_scale)
@@ -190,8 +183,6 @@ func _handle_duck_input() -> void:
 
 func _set_crouching(crouching: bool) -> void:
 	_is_crouching = crouching
-
-	# Cache two shapes instead of creating new ones every toggle
 	var shape := RectangleShape2D.new()
 	if _sq_tween: _sq_tween.kill()
 	_sq_tween = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT).set_parallel(true)
@@ -213,45 +204,47 @@ func _set_crouching(crouching: bool) -> void:
 		if p_trail: p_trail.position = Vector2(-20, 0)
 	_col_shape.shape = shape
 
-# ─── Combo system ─────────────────────────────────────────────────────────────
-func _trigger_combo() -> void:
-	if _jump_combo >= 2:
-		_streak += 1
-		if _combo_label:
-			# Escalate label size and color by streak level
-			var label_scale : Vector2
-			var label_color : Color
-			if _streak >= 10:
-				label_scale = Vector2(3.0, 3.0)
-				label_color = Color(1.0, 1.0, 0.0)   # starts yellow, _process rainbows it
-				apply_screen_shake(8.0)
-			elif _streak >= 5:
-				label_scale = Vector2(2.5, 2.5)
-				label_color = Color(1.0, 0.5, 0.0)   # orange
-			else:
-				label_scale = Vector2(2.0, 2.0)
-				label_color = Color(0.9, 0.5, 1.0)   # purple-white
+# ─── Public API — called by spawner when an obstacle is despawned ─────────────
+func on_obstacle_avoided() -> void:
+	if not controls_enabled:
+		return  # already dead, ignore late signals
+	_streak += 1
+	if VFXPanel.combo_enabled:
+		_show_streak_label()
 
-			_combo_label.text       = "x%d STREAK!" % _streak
-			_combo_label.modulate   = Color(label_color.r, label_color.g, label_color.b, 1.0)
-			_combo_label.scale      = label_scale
-			var tw := create_tween()
-			tw.tween_property(_combo_label, "scale", Vector2.ONE, 0.2)\
-				.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
-			tw.tween_interval(0.55)
-			tw.tween_property(_combo_label, "modulate:a", 0.0, 0.25)\
-				.set_ease(Tween.EASE_IN)
+# ─── Streak display ───────────────────────────────────────────────────────────
+func _show_streak_label() -> void:
+	if not _combo_label:
+		return
 
-		# Combo SFX — pitch rises with streak
-		if sfx_combo:
-			sfx_combo.pitch_scale = clampf(1.0 + (_streak * 0.06), 1.0, 1.8)
-			sfx_combo.play()
+	var label_scale : Vector2
+	var label_color : Color
+
+	if _streak >= 10:
+		label_scale = Vector2(3.0, 3.0)
+		label_color = Color(1.0, 1.0, 0.0)   # starts yellow, _process rainbows it
+		apply_screen_shake(8.0)
+	elif _streak >= 5:
+		label_scale = Vector2(2.5, 2.5)
+		label_color = Color(1.0, 0.5, 0.0)   # orange
 	else:
-		# Missed the double-jump — break the streak
-		_streak = 0
-		_combo_hue = 0.0
+		label_scale = Vector2(2.0, 2.0)
+		label_color = Color(0.9, 0.5, 1.0)   # purple-white
 
-	_jump_combo = 0
+	_combo_label.text     = "x%d Streak!" % _streak
+	_combo_label.modulate = Color(label_color.r, label_color.g, label_color.b, 1.0)
+	_combo_label.scale    = label_scale
+
+	var tw := create_tween()
+	tw.tween_property(_combo_label, "scale", Vector2.ONE, 0.2)\
+		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(0.55)
+	tw.tween_property(_combo_label, "modulate:a", 0.0, 0.25)\
+		.set_ease(Tween.EASE_IN)
+
+	if sfx_combo:
+		sfx_combo.pitch_scale = clampf(1.0 + (_streak * 0.06), 1.0, 1.8)
+		sfx_combo.play()
 
 # ─── Visual effects ───────────────────────────────────────────────────────────
 func _tween_squash_stretch(target_scale: Vector2) -> void:
@@ -269,8 +262,7 @@ func apply_screen_shake(amount: float) -> void:
 func die_effect() -> void:
 	controls_enabled = false
 	velocity         = Vector2.ZERO
-	_jump_combo      = 0
-	_streak          = 0     # ← was missing before
+	_streak          = 0
 	_combo_hue       = 0.0
 
 	if p_trail: p_trail.emitting = false
@@ -378,7 +370,7 @@ func _setup_land_particles() -> void:
 	mat.scale_max            = 6.0
 	mat.color                = Color(0.7, 0.6, 0.5, 0.6)
 	p_land.process_material  = mat
-	p_land.position          = Vector2(0, 40)   # at feet
+	p_land.position          = Vector2(0, 40)
 	p_land.z_index           = -1
 
 	var img := Image.create(8, 8, false, Image.FORMAT_RGBA8)

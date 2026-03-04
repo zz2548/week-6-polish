@@ -12,6 +12,9 @@ extends Node
 var _running     : bool  = true
 var _spawn_timer : float
 
+# Tracks which obstacles have already fired avoided so we never double-count.
+var _avoided_set : Dictionary = {}
+
 const OVERHEAD_BOTTOM_Y := -88.0
 
 @onready var _player        : CharacterBody2D = $"../../player"
@@ -40,7 +43,7 @@ func _process(delta: float) -> void:
 		return
 	_update_score(delta)
 	_tick_spawner(delta)
-	_despawn_passed_obstacles()
+	_check_avoided_and_despawn()
 
 func _tick_spawner(delta: float) -> void:
 	_spawn_timer -= delta
@@ -54,47 +57,70 @@ func _tick_spawner(delta: float) -> void:
 			_spawn_one()
 
 func _spawn_one() -> void:
-	var current_speed := _get_ground_speed()
-	var limits        := _calc_size_limits(current_speed)
-	var min_w : float  = limits[0]
-	var max_w : float  = limits[1]
-	var min_h : float  = limits[2]
-	var max_h : float  = limits[3]
-
+	var ob := _instantiate_obstacle()
+	var limits := _calc_size_limits(_get_ground_speed())
 	var kind : Dictionary = OBSTACLE_KINDS[randi() % OBSTACLE_KINDS.size()]
-	var h    := maxf(randf_range(max_h * kind["h_range"][0], max_h * kind["h_range"][1]), min_h)
-	var w    := maxf(randf_range(min_w * kind["w_range"][0], max_w * kind["w_range"][1]), min_w)
-	var c    : Color = kind["color"]
-
-	var ob := obstacle_scene.instantiate() as Node2D
-	_obstacle_root.add_child(ob)
-
+	var h := maxf(randf_range(limits[2] * kind["h_range"][0], limits[3] * kind["h_range"][1]), limits[2])
+	var w := maxf(randf_range(limits[0] * kind["w_range"][0], limits[1] * kind["w_range"][1]), limits[0])
 	var viewport_width := get_viewport().get_visible_rect().size.x
 	ob.global_position = Vector2(_player.global_position.x + viewport_width * 0.5 + spawn_offset, ground_y - h * 0.5)
-	ob.call("setup", w, h, c)
-	ob.connect("hit_player", _on_game_over)
+	ob.call("setup", w, h, kind["color"])
 
 func _spawn_overhead() -> void:
-	var current_speed := _get_ground_speed()
-	var limits        := _calc_size_limits(current_speed)
-	var min_w : float  = limits[0]
-	var max_w : float  = limits[1]
-
+	var ob := _instantiate_obstacle()
+	var limits := _calc_size_limits(_get_ground_speed())
 	var kind : Dictionary = OBSTACLE_KINDS[randi() % OBSTACLE_KINDS.size()]
 	var h := 55.0
-	var w := maxf(randf_range(min_w * 0.8, max_w * 0.6), min_w)
-	var c : Color = kind["color"]
-
-	var ob := obstacle_scene.instantiate() as Node2D
-	_obstacle_root.add_child(ob)
-
+	var w := maxf(randf_range(limits[0] * 0.8, limits[1] * 0.6), limits[0])
 	var viewport_width := get_viewport().get_visible_rect().size.x
 	ob.global_position = Vector2(
 		_player.global_position.x + viewport_width * 0.5 + spawn_offset,
 		OVERHEAD_BOTTOM_Y - h * 0.5
 	)
-	ob.call("setup_overhead", w, h, c)
+	ob.call("setup_overhead", w, h, kind["color"])
+
+func _instantiate_obstacle() -> Node2D:
+	var ob := obstacle_scene.instantiate() as Node2D
+	_obstacle_root.add_child(ob)
 	ob.connect("hit_player", _on_game_over)
+	# avoided is emitted by us below, not by the obstacle itself
+	return ob
+
+func _check_avoided_and_despawn() -> void:
+	# Player's left edge — used as the "cleared" threshold.
+	# The collision box is 80px wide and centred, so left edge is x - 40.
+	var player_left : float = _player.global_position.x - 40.0
+
+	for child in _obstacle_root.get_children():
+		var ob := child as Node2D
+		if not ob:
+			continue
+
+		# Each obstacle stores its width via the collision shape.
+		# Right edge = ob.global_position.x + half_width.
+		# We approximate half_width from the CollisionShape2D if available,
+		# otherwise fall back to 0 (still works, just fires at ob centre).
+		var half_w : float = 0.0
+		var col := ob.get_node_or_null("CollisionShape2D")
+		if col and col.shape is RectangleShape2D:
+			half_w = (col.shape as RectangleShape2D).size.x * 0.5
+
+		var ob_right : float = ob.global_position.x + half_w
+
+		# Fire avoided the first frame the obstacle's right edge clears the player.
+		if ob_right < player_left and not _avoided_set.has(ob):
+			_avoided_set[ob] = true
+			ob.avoided.emit()
+			_on_obstacle_avoided()
+
+		# Despawn well off the left edge as before.
+		if ob.global_position.x < _player.global_position.x - 1200.0:
+			_avoided_set.erase(ob)
+			ob.queue_free()
+
+func _on_obstacle_avoided() -> void:
+	if _player.has_method("on_obstacle_avoided"):
+		_player.on_obstacle_avoided()
 
 func _calc_size_limits(current_speed: float) -> Array[float]:
 	var v         : float = _player.call("get_jump_speed")
@@ -111,7 +137,7 @@ func _get_ground_speed() -> float:
 
 func _update_score(delta: float) -> void:
 	if _score:
-		var raw_score := maxi(0, int(_get_ground_speed() - 420))  # never negative
+		var raw_score := maxi(0, int(_get_ground_speed() - 420))
 		_score.text = "%d" % raw_score
 
 		if VFXPanel.score_heat_enabled:
@@ -123,16 +149,9 @@ func _update_score(delta: float) -> void:
 			_score.scale    = Vector2.ONE
 			_score.modulate = Color.WHITE
 
-	# Pitch-shift music with speed for extra juice
 	var music := get_node_or_null("/root/main/Music")
 	if music:
 		music.pitch_scale = clampf(1.0 + (_get_ground_speed() - 420.0) / 4000.0, 1.0, 1.25)
-
-func _despawn_passed_obstacles() -> void:
-	for child in _obstacle_root.get_children():
-		var ob := child as Node2D
-		if ob and ob.global_position.x < _player.global_position.x - 1200.0:
-			ob.queue_free()
 
 func _on_game_over() -> void:
 	if not _running: return
