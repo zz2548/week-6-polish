@@ -9,8 +9,12 @@ extends Node
 @export var min_t              : float = 2.0
 @export var max_t              : float = 3.5
 
+
 var _running     : bool  = true
 var _spawn_timer : float
+var _best_distance : int = 0
+var _distance      : float = 0.0
+
 
 const OVERHEAD_BOTTOM_Y := -88.0
 
@@ -19,6 +23,7 @@ const OVERHEAD_BOTTOM_Y := -88.0
 @onready var _obstacle_root : Node2D          = $".."
 @onready var _msg_label : Label = $"../../UI/msgLabel"
 @onready var _score     : Label = $"../../UI/Score"
+@onready var _best_score : Label = $"../../UI/BestScore"
 
 const OBSTACLE_KINDS := [
 	{ "color": Color(1.0, 0.1, 0.7),  "h_range": [0.00, 0.55], "w_range": [1.20, 0.80] },
@@ -30,7 +35,8 @@ const OBSTACLE_KINDS := [
 func _ready() -> void:
 	randomize()
 	_spawn_timer = randf_range(min_t, max_t)
-	if _score:     _score.text = "0"
+	if _score: _score.text = "Distance: 0m"
+	if _best_score: _best_score.text = "Best: %dm" % VFXPanel.best_distance
 	if _msg_label: _msg_label.text = ""
 
 func _process(delta: float) -> void:
@@ -110,12 +116,18 @@ func _get_ground_speed() -> float:
 	return float(_ground.get("speed"))
 
 func _update_score(delta: float) -> void:
+	_distance += _get_ground_speed() * delta * 0.01
+
+	var dist_int := int(_distance)
+
+	if dist_int > VFXPanel.best_distance:
+		VFXPanel.best_distance = dist_int
+
 	if _score:
-		var raw_score := maxi(0, int(_get_ground_speed() - 420))  # never negative
-		_score.text = "%d" % raw_score
+		_score.text = "Distance: %dm" % dist_int
 
 		if VFXPanel.score_heat_enabled:
-			var heat := clampf(raw_score / 2000.0, 0.0, 1.0)
+			var heat := clampf(_distance / 2000.0, 0.0, 1.0)
 			_score.scale    = Vector2.ONE * (1.0 + heat * 0.5)
 			_score.modulate = Color.WHITE.lerp(Color(1, 0.2, 0.2), heat)
 			_score.position += Vector2(randf_range(-heat, heat), randf_range(-heat, heat)) * 2.0
@@ -123,10 +135,13 @@ func _update_score(delta: float) -> void:
 			_score.scale    = Vector2.ONE
 			_score.modulate = Color.WHITE
 
-	# Pitch-shift music with speed for extra juice
+	if _best_score:
+		_best_score.text = "Best: %dm" % VFXPanel.best_distance
+
 	var music := get_node_or_null("/root/main/Music")
 	if music:
 		music.pitch_scale = clampf(1.0 + (_get_ground_speed() - 420.0) / 4000.0, 1.0, 1.25)
+
 
 func _despawn_passed_obstacles() -> void:
 	for child in _obstacle_root.get_children():

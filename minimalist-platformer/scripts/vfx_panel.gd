@@ -24,3 +24,4 @@ var score_heat_enabled      : bool = true
 var obstacle_popin_enabled  : bool = true
 var rain_enabled            : bool = true
 var parallax_bg_enabled     : bool = true
+var best_distance           : int = 0

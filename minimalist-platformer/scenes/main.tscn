@@ -125,9 +125,12 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Score" type="Label" parent="UI" unique_id=1848718228]
-offset_right = 40.0
-offset_bottom = 23.0
-text = "Score: "
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 195.0
+offset_bottom = 59.0
+theme_override_font_sizes/font_size = 28
+text = "Distance: 0m"
 
 [node name="ComboLabel" type="Label" parent="UI" unique_id=111111005]
 modulate = Color(0.9, 0.5, 1, 0)
@@ -145,6 +148,15 @@ grow_vertical = 2
 theme_override_font_sizes/font_size = 36
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="BestScore" type="Label" parent="UI" unique_id=970050163]
+modulate = Color(0.90588236, 0.79607844, 1, 1)
+offset_left = 20.0
+offset_top = 55.0
+offset_right = 104.0
+offset_bottom = 83.0
+theme_override_font_sizes/font_size = 20
+text = "Best: 0m"
 
 [node name="player" type="CharacterBody2D" parent="." unique_id=1595811372 groups=["player"]]
 position = Vector2(0, -137)
