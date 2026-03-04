@@ -6,7 +6,10 @@
 [ext_resource type="AudioStream" uid="uid://cmkjfeow7ddr8" path="res://assets/SFX_Jump_01.wav" id="3_tbgi4"]
 [ext_resource type="PackedScene" uid="uid://br4qhjdleka5g" path="res://scenes/obstacle.tscn" id="4_1bvp3"]
 [ext_resource type="AudioStream" uid="uid://b7gis36ki4yi5" path="res://assets/SFX_Jump_45.wav" id="4_tefeu"]
+[ext_resource type="AudioStream" uid="uid://k4uag4e2dnlr" path="res://assets/SFX_Death.wav" id="5_eb6dy"]
 [ext_resource type="Script" uid="uid://bqrpstu46poj0" path="res://scripts/parallax_bg.gd" id="6_pbg"]
+[ext_resource type="AudioStream" uid="uid://blgj3drfuv3py" path="res://assets/SFX_Land.wav" id="6_trceg"]
+[ext_resource type="AudioStream" uid="uid://ctw0qfvgjxwlw" path="res://assets/SFX_Combo.wav" id="7_a8y0u"]
 [ext_resource type="AudioStream" uid="uid://b6mulol3rugn3" path="res://assets/music.mp3" id="8_tipki"]
 [ext_resource type="Script" uid="uid://736r3x34g8ym" path="res://scripts/vfx_toggle_panel.gd" id="9_85g3d"]
 
@@ -54,7 +57,20 @@ spread = 180.0
 initial_velocity_min = 150.0
 initial_velocity_max = 420.0
 gravity = Vector3(0, 250, 0)
+scale_min = 4.0
+scale_max = 6.0
 color = Color(1, 0, 0.8, 1)
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_jkv2x"]
+particle_flag_disable_z = true
+direction = Vector3(0, -1, 0)
+spread = 70.0
+initial_velocity_min = 40.0
+initial_velocity_max = 120.0
+gravity = Vector3(0, 400, 0)
+scale_min = 3.0
+scale_max = 6.0
+color = Color(0.8548469, 0.79595864, 0.735357, 0.6)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_7dm0k"]
 size = Vector2(1200, 60)
@@ -90,7 +106,7 @@ glow_map_strength = 0.6
 
 [node name="main" type="Node2D" unique_id=2003832931]
 
-[node name="ParallaxBg" type="CanvasLayer" parent="." unique_id=111111010]
+[node name="ParallaxBg" type="CanvasLayer" parent="." unique_id=111111010 groups=["parallax_bg"]]
 script = ExtResource("6_pbg")
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=593991320]
@@ -130,7 +146,7 @@ theme_override_font_sizes/font_size = 36
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="player" type="CharacterBody2D" parent="." unique_id=1595811372]
+[node name="player" type="CharacterBody2D" parent="." unique_id=1595811372 groups=["player"]]
 position = Vector2(0, -137)
 script = ExtResource("1_ig7tw")
 
@@ -185,14 +201,31 @@ process_material = SubResource("ParticleProcessMaterial_jump")
 
 [node name="DeathParticles" type="GPUParticles2D" parent="player" unique_id=111111003]
 emitting = false
-amount = 40
-lifetime = 1.2
+amount = 30
 one_shot = true
 explosiveness = 1.0
 process_material = SubResource("ParticleProcessMaterial_death")
 
 [node name="SfxDeath" type="AudioStreamPlayer" parent="player" unique_id=111111004]
-volume_db = -15.0
+stream = ExtResource("5_eb6dy")
+volume_db = -7.702
+
+[node name="SfxLand" type="AudioStreamPlayer" parent="player" unique_id=1748092262]
+stream = ExtResource("6_trceg")
+volume_db = -12.5
+
+[node name="SfxCombo" type="AudioStreamPlayer" parent="player" unique_id=1109243314]
+stream = ExtResource("7_a8y0u")
+volume_db = -5.018
+
+[node name="LandParticles" type="GPUParticles2D" parent="player" unique_id=542081199]
+position = Vector2(0, 40)
+emitting = false
+amount = 20
+lifetime = 0.35000000000000003
+one_shot = true
+explosiveness = 0.85
+process_material = SubResource("ParticleProcessMaterial_jkv2x")
 
 [node name="ObstacleRoot" type="Node2D" parent="." unique_id=1432072697]
 
