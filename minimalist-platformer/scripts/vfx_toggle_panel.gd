@@ -1,29 +1,38 @@
+## vfx_toggle_panel.gd
+## Attach to a CanvasLayer node (layer = 10).
+## Press TAB in-game to show/hide the panel.
+## Requires VFXPanel to be registered as an Autoload (see vfx_panel.gd).
+
 class_name VFXTogglePanel
 extends CanvasLayer
 
+# ─── Toggle definitions ───────────────────────────────────────────────────────
 const TOGGLE_LABELS := [
-	"Trail Particles",
-	"Jump Particles",
-	"Death Particles",
-	"Screen Shake",
-	"Squash & Stretch",
-	"Neon Glow",
-	"Combo Label",
-	"Score Heat",
-	"Obstacle Pop-in",
-	"Rain",
+	"Trail Particles",   # 0
+	"Jump Particles",    # 1
+	"Death Particles",   # 2
+	"Screen Shake",      # 3
+	"Squash & Stretch",  # 4
+	"Neon Glow",         # 5
+	"Combo Label",       # 6
+	"Score Heat",        # 7
+	"Obstacle Pop-in",   # 8
+	"Rain",              # 9
+	"Parallax BG",       # 10
 ]
 
+# ─── UI state ─────────────────────────────────────────────────────────────────
 var _panel   : PanelContainer
 var _visible := false
 var _buttons : Array[Button] = []
-var _rain    : GPUParticles2D = null   # stored directly at _ready
+var _rain    : GPUParticles2D = null
 
+# ─── Lifecycle ────────────────────────────────────────────────────────────────
 func _ready() -> void:
 	layer = 10
 	_build_ui()
 	_panel.visible = false
-	# Store rain reference safely — parallax_bg adds it as last child
+	# Store rain reference — parallax_bg registers itself to "parallax_bg" group
 	var bg := get_tree().get_first_node_in_group("parallax_bg")
 	if not bg:
 		bg = get_node_or_null("/root/main/ParallaxBg")
@@ -37,7 +46,23 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.keycode == KEY_TAB and event.pressed and not event.echo:
 		_visible       = not _visible
 		_panel.visible = _visible
+		# Sync button states each time the panel opens so they reflect
+		# whatever VFXPanel currently holds (survives scene reload).
+		if _visible:
+			_sync_buttons()
 
+# ─── Sync buttons to current flag state ───────────────────────────────────────
+func _sync_buttons() -> void:
+	for i in _buttons.size():
+		var on  := _get_flag(i)
+		var btn := _buttons[i]
+		btn.set_block_signals(true)
+		btn.button_pressed = on
+		btn.text = _btn_label(TOGGLE_LABELS[i], on)
+		_apply_btn_style(btn, on)
+		btn.set_block_signals(false)
+
+# ─── Read / write VFXPanel flags by index ────────────────────────────────────
 func _get_flag(idx: int) -> bool:
 	match idx:
 		0:  return VFXPanel.trail_enabled
@@ -50,6 +75,7 @@ func _get_flag(idx: int) -> bool:
 		7:  return VFXPanel.score_heat_enabled
 		8:  return VFXPanel.obstacle_popin_enabled
 		9:  return VFXPanel.rain_enabled
+		10: return VFXPanel.parallax_bg_enabled
 	return true
 
 func _set_flag(idx: int, value: bool) -> void:
@@ -64,7 +90,9 @@ func _set_flag(idx: int, value: bool) -> void:
 		7:  VFXPanel.score_heat_enabled      = value
 		8:  VFXPanel.obstacle_popin_enabled  = value
 		9:  VFXPanel.rain_enabled            = value
+		10: VFXPanel.parallax_bg_enabled     = value
 
+# ─── UI builder ───────────────────────────────────────────────────────────────
 func _build_ui() -> void:
 	_panel = PanelContainer.new()
 	_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
@@ -99,6 +127,7 @@ func _build_ui() -> void:
 		btn.text           = _btn_label(TOGGLE_LABELS[i], on)
 		btn.toggle_mode    = true
 		btn.button_pressed = on
+		btn.focus_mode     = Control.FOCUS_NONE
 		btn.add_theme_font_size_override("font_size", 13)
 		_apply_btn_style(btn, on)
 		btn.toggled.connect(_on_toggled.bind(i, btn))
@@ -108,12 +137,13 @@ func _build_ui() -> void:
 	add_child(_panel)
 
 func _btn_label(display: String, on: bool) -> String:
-	return ("✅  " if on else "❌  ") + display
+	return ("[ON]  " if on else "[OFF] ") + display
 
 func _apply_btn_style(btn: Button, on: bool) -> void:
 	btn.add_theme_color_override("font_color",
 		Color(0.5, 1.0, 0.75) if on else Color(1.0, 0.3, 0.4))
 
+# ─── Toggle handler ───────────────────────────────────────────────────────────
 func _on_toggled(pressed: bool, idx: int, btn: Button) -> void:
 	_set_flag(idx, pressed)
 	btn.text = _btn_label(TOGGLE_LABELS[idx], pressed)
@@ -126,14 +156,14 @@ func _apply_side_effect(idx: int, on: bool) -> void:
 		player = get_node_or_null("/root/main/player")
 
 	match idx:
-		0:  # Trail Particles — stop/start immediately
+		0:  # Trail Particles
 			if player:
 				var trail = player.get_node_or_null("TrailParticles")
 				if trail:
 					trail.emitting = on
 					trail.visible  = on
 
-		5:  # Neon Glow — update player AND all live obstacles
+		5:  # Neon Glow — player sprite, PointLight2D, WorldEnvironment, obstacles
 			if player:
 				var sprite = player.get_node_or_null("Sprite2D")
 				if sprite:
@@ -146,39 +176,37 @@ func _apply_side_effect(idx: int, on: bool) -> void:
 						sprite.material = mat
 					else:
 						sprite.material = null
+				var light = player.get_node_or_null("PointLight2D")
+				if light:
+					light.visible = on
+			var world_env = get_tree().get_root().find_child("WorldEnvironment", true, false)
+			if world_env and world_env.environment:
+				world_env.environment.glow_enabled = on
+			for ob in get_tree().get_nodes_in_group("obstacles"):
+				if ob.has_method("set_neon_glow"):
+					ob.set_neon_glow(on)
 
-			# Also update every obstacle currently on screen
-			var obs_root := get_node_or_null("/root/main/ObstacleRoot")
-			if obs_root:
-				for obs in obs_root.get_children():
-					for child in obs.get_children():
-						if child is Polygon2D:
-							if on:
-								var mat := ShaderMaterial.new()
-								mat.shader = load("res://assets/neon_glow.gdshader")
-								mat.set_shader_parameter("glow_color",     child.color)
-								mat.set_shader_parameter("glow_intensity", 3.0)
-								mat.set_shader_parameter("glow_size",      3.0)
-								child.material = mat
-							else:
-								child.material = null
-
-		6:  # Combo Label — hide/show
+		6:  # Combo Label
 			if player:
 				var combo = player.get_node_or_null("../UI/ComboLabel")
 				if combo:
 					combo.visible = on
 
-		7:  # Score Heat — reset score display to neutral when turned off
+		7:  # Score Heat — reset to neutral when turned off
 			var score_label := get_node_or_null("/root/main/UI/Score")
 			if score_label and not on:
 				score_label.scale    = Vector2.ONE
 				score_label.modulate = Color.WHITE
 
-		8:  # Obstacle Pop-in — no live side effect (affects future spawns only)
+		8:  # Obstacle Pop-in — affects future spawns only
 			pass
 
-		9:  # Rain — use stored reference for reliability
+		9:  # Rain
 			if _rain:
 				_rain.emitting = on
 				_rain.visible  = on
+
+		10: # Parallax BG
+			var bg = get_tree().get_first_node_in_group("parallax_bg")
+			if bg:
+				bg.visible = on
