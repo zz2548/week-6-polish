@@ -15,6 +15,6 @@ static var shake_enabled           : bool = true
 static var squash_enabled          : bool = true
 static var neon_glow_enabled       : bool = true
 static var combo_enabled           : bool = true
-static var score_heat_enabled      : bool = true
 static var obstacle_popin_enabled  : bool = true
 static var rain_enabled            : bool = true
+static var parallax_bg_enabled     : bool = true

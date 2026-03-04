@@ -43,6 +43,7 @@ var _streak     : int = 0
 
 # ─── Lifecycle ────────────────────────────────────────────────────────────────
 func _ready() -> void:
+	add_to_group("player")
 	_camera.ignore_rotation = true
 	_sprite_base_scale = _sprite.scale
 

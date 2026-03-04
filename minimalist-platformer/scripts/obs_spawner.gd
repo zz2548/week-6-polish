@@ -11,8 +11,9 @@ extends Node
 @export var max_t              : float = 3.5
 
 # ─── Internal State ──────────────────────────────────────────────────────────
-var _running     : bool  = true
-var _spawn_timer : float
+var _running        : bool    = true
+var _spawn_timer    : float
+var _score_base_pos : Vector2
 
 # Y position (world space) of the bottom of an overhead obstacle's hitbox.
 # Standing player top is ~-110; crouching top is ~-70.
@@ -37,7 +38,9 @@ const OBSTACLE_KINDS := [
 func _ready() -> void:
 	randomize()
 	_spawn_timer = randf_range(min_t, max_t)
-	if _score:     _score.text     = "Score: 0"
+	if _score:
+		_score.text     = "Score: 0"
+		_score_base_pos = _score.position
 	if _msg_label: _msg_label.text = ""
 
 func _process(delta: float) -> void:
@@ -128,11 +131,10 @@ func _update_score(delta: float) -> void:
 		var raw_score := int(_get_ground_speed() - 420)
 		_score.text = "%d" % raw_score
 
-		# Juice: Scale and shake score based on speed (Heat)
 		var heat := clampf(raw_score / 2000.0, 0.0, 1.0)
-		_score.scale = Vector2.ONE * (1.0 + heat * 0.5)
+		_score.scale    = Vector2.ONE * (1.0 + heat * 0.5)
 		_score.modulate = Color.WHITE.lerp(Color(1, 0.2, 0.2), heat)
-		_score.position += Vector2(randf_range(-heat, heat), randf_range(-heat, heat)) * 2.0
+		_score.position = _score_base_pos + Vector2(randf_range(-heat, heat), randf_range(-heat, heat)) * 2.0
 
 func _despawn_passed_obstacles() -> void:
 	for child in _obstacle_root.get_children():

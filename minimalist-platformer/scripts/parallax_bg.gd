@@ -23,6 +23,7 @@ var _layer_data := []  # Array of { node: Node2D, strips: Array[Polygon2D], fact
 
 # ─── Lifecycle ────────────────────────────────────────────────────────────────
 func _ready() -> void:
+	add_to_group("parallax_bg")
 	layer = -1  # render behind the main canvas (game objects)
 	_ground = get_parent().get_node("Ground")
 

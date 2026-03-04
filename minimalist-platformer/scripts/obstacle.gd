@@ -11,6 +11,7 @@ signal hit_player
 
 # ─── Lifecycle ───────────────────────────────────────────────────────────────
 func _ready() -> void:
+	add_to_group("obstacles")
 	body_entered.connect(_on_body_entered)
 
 
@@ -49,6 +50,9 @@ func _setup_overhead_collision(w: float, spike_h: float) -> void:
 	_collision.position = Vector2(0, spike_h * 0.5 - coll_h * 0.5)
 
 func _pop_in() -> void:
+	if not VFXPanel.obstacle_popin_enabled:
+		scale = Vector2.ONE
+		return
 	scale = Vector2.ZERO
 	var tween := create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(self, "scale", Vector2.ONE, 0.28)
@@ -111,16 +115,30 @@ func _make_spike_polygon(w: float, h: float, c: Color, spikes_down: bool) -> Pol
 	polygon.polygon = pts
 	polygon.color   = c
 
-	# Apply neon glow shader
-	var mat := ShaderMaterial.new()
-	mat.shader = preload("res://assets/neon_glow.gdshader")
-	mat.set_shader_parameter("glow_color",     c)
-	mat.set_shader_parameter("glow_intensity", 3.0)
-	mat.set_shader_parameter("glow_size",      3.0)
-	polygon.material = mat
+	if VFXPanel.neon_glow_enabled:
+		var mat := ShaderMaterial.new()
+		mat.shader = preload("res://assets/neon_glow.gdshader")
+		mat.set_shader_parameter("glow_color",     c)
+		mat.set_shader_parameter("glow_intensity", 3.0)
+		mat.set_shader_parameter("glow_size",      3.0)
+		polygon.material = mat
 
 	return polygon
 
+
+func set_neon_glow(enabled: bool) -> void:
+	for child in get_children():
+		if child is Polygon2D:
+			if enabled:
+				var c    := (child as Polygon2D).color
+				var mat  := ShaderMaterial.new()
+				mat.shader = load("res://assets/neon_glow.gdshader")
+				mat.set_shader_parameter("glow_color",     c)
+				mat.set_shader_parameter("glow_intensity", 3.0)
+				mat.set_shader_parameter("glow_size",      3.0)
+				child.material = mat
+			else:
+				child.material = null
 
 # ─── Collision ───────────────────────────────────────────────────────────────
 func _on_body_entered(body: Node) -> void:

@@ -7,25 +7,22 @@ class_name VFXTogglePanel
 extends CanvasLayer
 
 # ─── Toggle definitions ───────────────────────────────────────────────────────
-# Maps display label → initial value getter/setter lambdas that touch VFXPanel directly.
-# Avoids any reflection — plain static var reads/writes only.
 const TOGGLE_LABELS := [
-	"Trail Particles",
-	"Jump Particles",
-	"Death Particles",
-	"Screen Shake",
-	"Squash & Stretch",
-	"Neon Glow",
-	"Combo Label",
-	"Score Heat",
-	"Obstacle Pop-in",
-	"Rain",
+	"Trail Particles",   # 0
+	"Jump Particles",    # 1
+	"Death Particles",   # 2
+	"Screen Shake",      # 3
+	"Squash & Stretch",  # 4
+	"Neon Glow",         # 5
+	"Combo Label",       # 6
+	"Obstacle Pop-in",   # 7
+	"Rain",              # 8
+	"Parallax BG",       # 9
 ]
 
 # ─── UI state ─────────────────────────────────────────────────────────────────
 var _panel   : PanelContainer
 var _visible := false
-# Ordered parallel to TOGGLE_LABELS — each Button so we can update them
 var _buttons : Array[Button] = []
 
 # ─── Lifecycle ────────────────────────────────────────────────────────────────
@@ -49,9 +46,9 @@ func _get_flag(idx: int) -> bool:
 		4:  return VFXPanel.squash_enabled
 		5:  return VFXPanel.neon_glow_enabled
 		6:  return VFXPanel.combo_enabled
-		7:  return VFXPanel.score_heat_enabled
-		8:  return VFXPanel.obstacle_popin_enabled
-		9:  return VFXPanel.rain_enabled
+		7:  return VFXPanel.obstacle_popin_enabled
+		8:  return VFXPanel.rain_enabled
+		9:  return VFXPanel.parallax_bg_enabled
 	return true
 
 func _set_flag(idx: int, value: bool) -> void:
@@ -63,9 +60,9 @@ func _set_flag(idx: int, value: bool) -> void:
 		4:  VFXPanel.squash_enabled          = value
 		5:  VFXPanel.neon_glow_enabled       = value
 		6:  VFXPanel.combo_enabled           = value
-		7:  VFXPanel.score_heat_enabled      = value
-		8:  VFXPanel.obstacle_popin_enabled  = value
-		9:  VFXPanel.rain_enabled            = value
+		7:  VFXPanel.obstacle_popin_enabled  = value
+		8:  VFXPanel.rain_enabled            = value
+		9:  VFXPanel.parallax_bg_enabled     = value
 
 # ─── UI builder ───────────────────────────────────────────────────────────────
 func _build_ui() -> void:
@@ -102,6 +99,7 @@ func _build_ui() -> void:
 		btn.text           = _btn_label(TOGGLE_LABELS[i], on)
 		btn.toggle_mode    = true
 		btn.button_pressed = on
+		btn.focus_mode     = Control.FOCUS_NONE
 		btn.add_theme_font_size_override("font_size", 13)
 		_apply_btn_style(btn, on)
 		btn.toggled.connect(_on_toggled.bind(i, btn))
@@ -111,7 +109,7 @@ func _build_ui() -> void:
 	add_child(_panel)
 
 func _btn_label(display: String, on: bool) -> String:
-	return ("✅  " if on else "❌  ") + display
+	return ("[ON]  " if on else "[OFF] ") + display
 
 func _apply_btn_style(btn: Button, on: bool) -> void:
 	btn.add_theme_color_override("font_color",
@@ -126,8 +124,6 @@ func _on_toggled(pressed: bool, idx: int, btn: Button) -> void:
 
 func _apply_side_effect(idx: int, on: bool) -> void:
 	var player := get_tree().get_first_node_in_group("player")
-	if not player:
-		player = get_node_or_null("/root/Main/player")
 
 	match idx:
 		0:  # Trail Particles
@@ -137,7 +133,7 @@ func _apply_side_effect(idx: int, on: bool) -> void:
 					trail.emitting = on
 					trail.visible  = on
 
-		5:  # Neon Glow
+		5:  # Neon Glow — shader on player sprite, PointLight2D, WorldEnvironment, obstacles
 			if player:
 				var sprite = player.get_node_or_null("Sprite2D")
 				if sprite:
@@ -150,6 +146,15 @@ func _apply_side_effect(idx: int, on: bool) -> void:
 						sprite.material = mat
 					else:
 						sprite.material = null
+				var light = player.get_node_or_null("PointLight2D")
+				if light:
+					light.visible = on
+			var world_env = get_tree().get_root().find_child("WorldEnvironment", true, false)
+			if world_env and world_env.environment:
+				world_env.environment.glow_enabled = on
+			for ob in get_tree().get_nodes_in_group("obstacles"):
+				if ob.has_method("set_neon_glow"):
+					ob.set_neon_glow(on)
 
 		6:  # Combo Label
 			if player:
@@ -157,11 +162,14 @@ func _apply_side_effect(idx: int, on: bool) -> void:
 				if combo:
 					combo.visible = on
 
-		9:  # Rain
+		8:  # Rain
 			var bg = get_tree().get_first_node_in_group("parallax_bg")
-			if not bg:
-				bg = get_node_or_null("/root/Main/ParallaxBG")
 			if bg:
 				for child in bg.get_children():
 					if child is GPUParticles2D:
 						child.emitting = on
+
+		9:  # Parallax BG
+			var bg = get_tree().get_first_node_in_group("parallax_bg")
+			if bg:
+				bg.visible = on
